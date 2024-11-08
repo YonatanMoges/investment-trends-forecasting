@@ -60,19 +60,47 @@ class DataPreprocessing:
 
     def analyze_volatility(self, window=30):
         """
-        Calculate and plot rolling mean and standard deviation.
+        Calculate and plot rolling mean and standard deviation for each ticker.
         """
         plt.figure(figsize=(14, 7))
+        
         for ticker, df in self.data.items():
+            # Ensure the DataFrame has a DateTime index
+            df = df.copy()
+            df.index = pd.to_datetime(df.index)
+
+            # Calculate rolling mean and standard deviation
             rolling_mean = df['Adj Close'].rolling(window=window).mean()
             rolling_std = df['Adj Close'].rolling(window=window).std()
-            plt.plot(df.index, rolling_mean, label=f'{ticker} Rolling Mean ({window} days)')
-            plt.fill_between(df.index, rolling_mean - rolling_std, rolling_mean + rolling_std, alpha=0.2)
+
+            # Drop NaN values
+            rolling_mean = rolling_mean.dropna()
+            rolling_std = rolling_std.dropna()
+
+            # Align the indexes of rolling mean and std
+            rolling_mean, rolling_std = rolling_mean.align(rolling_std, join='inner')
+
+            # Calculate the lower and upper bounds
+            lower_bound = (rolling_mean - rolling_std).dropna()
+            upper_bound = (rolling_mean + rolling_std).dropna()
+
+            # Plot rolling mean
+            plt.plot(rolling_mean.index, rolling_mean, label=f'{ticker} Rolling Mean ({window} days)')
+
+            plt.fill_between(
+            rolling_mean.index,
+            lower_bound.loc[rolling_mean.index].squeeze(),
+            upper_bound.loc[rolling_mean.index].squeeze(),
+            alpha=0.2
+            )
+
         plt.title(f"Rolling Mean and Volatility (Window = {window} days)")
         plt.xlabel("Date")
         plt.ylabel("Price (USD)")
         plt.legend()
         plt.show()
+
+
 
     def decompose_trend_seasonality(self, ticker, model='additive'):
         """
