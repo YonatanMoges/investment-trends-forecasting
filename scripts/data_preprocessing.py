@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.preprocessing import MinMaxScaler
 from statsmodels.tsa.seasonal import seasonal_decompose
+import os
 
 class DataPreprocessing:
     def __init__(self, tickers, start_date, end_date):
@@ -111,6 +112,41 @@ class DataPreprocessing:
         fig = decomposition.plot()
         fig.set_size_inches(14, 10)
         plt.show()
+
+    def save_processed_data(self, folder_path="../data"):
+        """
+        Save the processed data as CSV files in the specified folder.
+
+        Parameters:
+        - folder_path (str): The path of the output folder (default: "../data").
+
+        Returns:
+        - None
+        """
+        if not hasattr(self, 'data'):
+            raise AttributeError("Processed data not found. Ensure you have called data processing methods before saving.")
+
+        # Ensure the output folder exists
+        os.makedirs(folder_path, exist_ok=True)
+
+        # Check if self.data is a dictionary
+        if isinstance(self.data, dict):
+            for ticker, df in self.data.items():
+                try:
+                    # Save each DataFrame separately
+                    filename = os.path.join(folder_path, f"{ticker}_processed.csv")
+                    df.to_csv(filename, index=True)
+                    print(f"Processed data for {ticker} successfully saved to: {filename}")
+                except Exception as e:
+                    print(f"Error while saving the file for {ticker}: {e}")
+        else:
+            # If self.data is a single DataFrame, save it directly
+            filename = os.path.join(folder_path, "investment_data.csv")
+            try:
+                self.data.to_csv(filename, index=True)
+                print(f"Processed data successfully saved to: {filename}")
+            except Exception as e:
+                print(f"Error while saving the file: {e}")
 
 # Example usage
 if __name__ == "__main__":
