@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import warnings
-from sklearn.metrics import mean_absolute_error, mean_squared_error
+from sklearn.metrics import mean_absolute_error, mean_squared_error, mean_absolute_percentage_error
 from pmdarima import auto_arima
 from statsmodels.tsa.statespace.sarimax import SARIMAX
 from tensorflow.keras.models import Sequential
@@ -24,7 +24,7 @@ class TimeSeriesForecasting:
 
         # Initialize predictions as an empty dictionary
         self.predictions = {}
-        
+
         # Display the columns to understand the current structure
         print("Columns in dataset:", self.data.columns)
 
@@ -100,20 +100,35 @@ class TimeSeriesForecasting:
         mae, rmse, mape = self.evaluate(self.test['Close'], forecast)
         print(f"SARIMA - MAE: {mae:.2f}, RMSE: {rmse:.2f}, MAPE: {mape:.2f}%")
 
-    def build_lstm(self, units=50, epochs=20, batch_size=32):
-        """Build and train the LSTM model."""
+    
+
+    def build_lstm(self, units=50, epochs=20, batch_size=32, activation='relu', optimizer='adam', loss='mse'):
+        """Build and train the LSTM model with additional options."""
+        # Scale the 'Close' values (assuming they are already scaled outside this function)
         train_scaled = self.train['Close'].values.reshape(-1, 1)
         test_scaled = self.test['Close'].values.reshape(-1, 1)
-
+        
         # Prepare data for LSTM
         X_train, y_train = self.create_sequences(train_scaled)
         X_test, y_test = self.create_sequences(test_scaled)
+        
+        # Ensure the data is in the correct format for the LSTM model
+        X_train = X_train.astype(float)
+        y_train = y_train.astype(float)
+        X_test = X_test.astype(float)
+        y_test = y_test.astype(float)
 
         # Build LSTM model
         model = Sequential()
-        model.add(LSTM(units, activation='relu', input_shape=(X_train.shape[1], X_train.shape[2])))
+        model.add(LSTM(units, activation=activation, input_shape=(X_train.shape[1], X_train.shape[2])))
         model.add(Dense(1))
-        model.compile(optimizer=Adam(), loss='mse')
+
+        # Configure the optimizer and loss function
+        if optimizer == 'adam':
+            model.compile(optimizer=Adam(), loss=loss)
+        else:
+            # Add other optimizers if needed
+            model.compile(optimizer=optimizer, loss=loss)
 
         # Train the model
         model.fit(X_train, y_train, epochs=epochs, batch_size=batch_size, verbose=1)
@@ -121,8 +136,15 @@ class TimeSeriesForecasting:
         # Make predictions
         predictions = model.predict(X_test).flatten()
         self.predictions['LSTM'] = predictions
-        mae, rmse, mape = self.evaluate(y_test, predictions)
+
+        # Evaluate performance
+        mae = mean_absolute_error(y_test, predictions)
+        rmse = np.sqrt(mean_squared_error(y_test, predictions))
+        mape = mean_absolute_percentage_error(y_test, predictions) * 100
+
+        # Output evaluation metrics
         print(f"LSTM - MAE: {mae:.2f}, RMSE: {rmse:.2f}, MAPE: {mape:.2f}%")
+
 
     def create_sequences(self, data, seq_length=10):
         """Create sequences for LSTM input."""
