@@ -5,3 +5,9 @@ matplotlib
 seaborn
 scikit-learn
 statsmodels
+
+pmdarima
+#install numpy==1.24.3 for time series model to ensure compatibility
+tensorflow
+
+
