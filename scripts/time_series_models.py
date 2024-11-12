@@ -22,6 +22,9 @@ class TimeSeriesForecasting:
         # Load the CSV file without renaming columns immediately
         self.data = pd.read_csv(filepath, header=0)
 
+        # Initialize predictions as an empty dictionary
+        self.predictions = {}
+        
         # Display the columns to understand the current structure
         print("Columns in dataset:", self.data.columns)
 
