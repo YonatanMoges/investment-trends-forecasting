@@ -1,19 +1,23 @@
+# scripts/forecasting.py
 import numpy as np
 import tensorflow as tf
 from sklearn.preprocessing import MinMaxScaler
 from datetime import timedelta
 import pandas as pd
 import matplotlib.pyplot as plt
+
 class LSTMForecast:
-    def __init__(self, model_path, data):
+    def __init__(self, model_path, data, asset_name="Asset"):
         """
         Initialize the LSTMForecast class.
-
+        
         Parameters:
         - model_path (str): Path to the saved LSTM model.
         - data (pd.DataFrame): Historical stock price data.
+        - asset_name (str): Name of the asset for saving forecasted data.
         """
         self.model = tf.keras.models.load_model(model_path)
+        self.asset_name = asset_name
         
         # Ensure 'Close' column contains numeric values only
         if data['Close'].dtype != np.float64 and data['Close'].dtype != np.float32:
@@ -55,7 +59,27 @@ class LSTMForecast:
         # Inverse transform predictions to original scale
         predictions = self.scaler.inverse_transform(np.array(predictions).reshape(-1, 1))
         return predictions
-    
+
+    from datetime import timedelta
+
+    def save_forecast(self, forecast_prices):
+        # Ensure the date index is a datetime format
+        if not pd.api.types.is_datetime64_any_dtype(self.data.index):
+            self.data.index = pd.to_datetime(self.data.index)
+
+        # Get the last date in the historical data
+        last_date = self.data.index[-1]
+
+        # Generate future dates
+        forecast_dates = [last_date + timedelta(days=i) for i in range(1, self.future_steps + 1)]
+
+        # Create DataFrame for forecasted data
+        forecast_df = pd.DataFrame({'Date': forecast_dates, 'Forecasted Close': forecast_prices.flatten()})
+
+        # Save to a CSV file
+        forecast_df.to_csv('../data/forecasted_prices.csv', index=False)
+
+
     def plot_forecast(self, forecast_prices):
         """
         Plot historical and forecasted prices.
@@ -76,7 +100,7 @@ class LSTMForecast:
         plt.plot(forecast_dates, forecast_prices, label="Forecasted Prices", linestyle='--')
         plt.xlabel("Date")
         plt.ylabel("Price")
-        plt.title("Historical and Forecasted Stock Prices")
+        plt.title(f"Historical and Forecasted Prices for {self.asset_name}")
         plt.legend()
         plt.show()
         
