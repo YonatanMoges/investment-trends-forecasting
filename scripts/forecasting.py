@@ -58,25 +58,28 @@ class LSTMForecast:
     
     def plot_forecast(self, forecast_prices):
         """
-        Plot the forecast alongside the historical data.
-
-        Parameters:
-        - forecast_prices (list): Predicted stock prices.
+        Plot historical and forecasted prices.
         """
-        # Create a date range for the forecast
+        # Ensure that the data index is a DatetimeIndex
+        if not isinstance(self.data.index, pd.DatetimeIndex):
+            self.data.index = pd.to_datetime(self.data.index)
+
+        # Get the last date in the historical data
         last_date = self.data.index[-1]
+
+        # Create a date range for the forecast
         forecast_dates = [last_date + timedelta(days=i) for i in range(1, self.future_steps + 1)]
 
         # Plot historical and forecast data
         plt.figure(figsize=(12, 6))
-        plt.plot(self.data.index, self.data['Close'], label='Historical Data', color='blue')
-        plt.plot(forecast_dates, forecast_prices, label='LSTM Forecast', color='green')
-        plt.xlabel('Date')
-        plt.ylabel('Stock Price')
-        plt.title('LSTM Forecast for Tesla Stock Prices')
+        plt.plot(self.data.index, self.data['Close'], label="Historical Prices")
+        plt.plot(forecast_dates, forecast_prices, label="Forecasted Prices", linestyle='--')
+        plt.xlabel("Date")
+        plt.ylabel("Price")
+        plt.title("Historical and Forecasted Stock Prices")
         plt.legend()
         plt.show()
-
+        
     def analyze_forecast(self, forecast_prices):
         """
         Analyze the forecast to identify trends and risks.
