@@ -3,7 +3,7 @@ import tensorflow as tf
 from sklearn.preprocessing import MinMaxScaler
 from datetime import timedelta
 import pandas as pd
-
+import matplotlib.pyplot as plt
 class LSTMForecast:
     def __init__(self, model_path, data):
         """
@@ -31,39 +31,31 @@ class LSTMForecast:
 
     def prepare_data(self):
         """
-        Prepare the data for forecasting by normalizing the input.
-
-        Returns:
-        - last_sequence (np.array): The last sequence used for forecasting.
+        Prepare the data for forecasting by taking the last 10 timesteps.
         """
-        # Use the last 60 days of data for prediction (same as training sequence length)
-        last_60_days = self.data['Close'].values[-60:]
-        last_sequence = self.scaler.transform(last_60_days.reshape(-1, 1))
-        last_sequence = np.expand_dims(last_sequence, axis=0)
+        last_sequence = self.data['Close'].values[-10:]  
+        last_sequence = last_sequence.reshape((1, 10, 1))  # Reshape to (1, 10, 1)
         return last_sequence
 
     def forecast(self):
         """
-        Generate future stock price predictions using the LSTM model.
-
-        Returns:
-        - forecast_prices (list): Predicted stock prices for the next `future_steps` days.
+        Generate future forecasts based on the trained model.
         """
         predictions = []
-        last_sequence = self.prepare_data()
+        last_sequence = self.prepare_data()  # Get the last 10-timestep sequence
 
         for _ in range(self.future_steps):
             predicted_price = self.model.predict(last_sequence)
             predictions.append(predicted_price[0, 0])
 
-            # Update the sequence with the predicted price
-            new_sequence = np.append(last_sequence[0, 1:], predicted_price, axis=0)
-            last_sequence = np.expand_dims(new_sequence, axis=0)
+            # Update last_sequence to include predicted_price
+            predicted_price_reshaped = predicted_price.reshape((1, 1, 1))  # Reshape to (1, 1, 1)
+            last_sequence = np.append(last_sequence[:, 1:, :], predicted_price_reshaped, axis=1)
 
-        # Inverse transform the predictions to the original scale
-        forecast_prices = self.scaler.inverse_transform(np.array(predictions).reshape(-1, 1)).flatten()
-        return forecast_prices
-
+        # Inverse transform predictions to original scale
+        predictions = self.scaler.inverse_transform(np.array(predictions).reshape(-1, 1))
+        return predictions
+    
     def plot_forecast(self, forecast_prices):
         """
         Plot the forecast alongside the historical data.
