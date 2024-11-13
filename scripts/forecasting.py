@@ -2,6 +2,7 @@ import numpy as np
 import tensorflow as tf
 from sklearn.preprocessing import MinMaxScaler
 from datetime import timedelta
+import pandas as pd
 
 class LSTMForecast:
     def __init__(self, model_path, data):
@@ -13,9 +14,19 @@ class LSTMForecast:
         - data (pd.DataFrame): Historical stock price data.
         """
         self.model = tf.keras.models.load_model(model_path)
-        self.data = data
-        self.scaler = MinMaxScaler(feature_range=(0, 1))  # Initialize scaler here
-        self.data['Close'] = self.scaler.fit_transform(data[['Close']])
+        
+        # Ensure 'Close' column contains numeric values only
+        if data['Close'].dtype != np.float64 and data['Close'].dtype != np.float32:
+            data['Close'] = pd.to_numeric(data['Close'], errors='coerce')
+        
+        # Drop rows with any missing values in the 'Close' column after conversion
+        data = data.dropna(subset=['Close'])
+        
+        # Initialize scaler and fit-transform the 'Close' prices
+        self.scaler = MinMaxScaler(feature_range=(0, 1))
+        self.data = data.copy()
+        self.data['Close'] = self.scaler.fit_transform(self.data[['Close']])
+        
         self.future_steps = 180  # Forecast for the next 6 months (approx. 180 days)
 
     def prepare_data(self):
