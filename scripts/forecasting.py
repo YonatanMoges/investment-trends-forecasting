@@ -59,11 +59,10 @@ class LSTMForecast:
         # Inverse transform predictions to original scale
         predictions = self.scaler.inverse_transform(np.array(predictions).reshape(-1, 1))
         return predictions
+    
 
-    from datetime import timedelta
-
-    def save_forecast(self, forecast_prices):
-        # Ensure the date index is a datetime format
+    def save_forecast(self, forecast_prices, output_path='../data/forecasted_prices.csv'):
+        # Ensure the date index is in datetime format
         if not pd.api.types.is_datetime64_any_dtype(self.data.index):
             self.data.index = pd.to_datetime(self.data.index)
 
@@ -76,9 +75,9 @@ class LSTMForecast:
         # Create DataFrame for forecasted data
         forecast_df = pd.DataFrame({'Date': forecast_dates, 'Forecasted Close': forecast_prices.flatten()})
 
-        # Save to a CSV file
-        forecast_df.to_csv('../data/forecasted_prices.csv', index=False)
-
+        # Save to the specified output file
+        forecast_df.to_csv(output_path, index=False)
+        print(f"Forecast saved to {output_path}")
 
     def plot_forecast(self, forecast_prices):
         """
